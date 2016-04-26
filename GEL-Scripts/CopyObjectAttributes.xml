@@ -1,0 +1,167 @@
+<!-- Copia atributos entre objetos customizados -->
+<gel:script 
+	xmlns:core="jelly:core" 
+	xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary" 
+	xmlns:sql="jelly:sql" 
+	xmlns:soap="jelly:com.niku.union.gel.SOAPTagLibrary" 
+	xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+	xmlns:xog="http://www.niku.com/xog">
+	
+	<!-- Informações do ambiente -->
+	<gel:parameter default="http://<seu_servidor_clarity>" var="XOGURL"/>
+	<gel:parameter default="xog" var="XOGUsername"/>
+	<gel:parameter default="senha"  var="XOGPassword"/>
+	<gel:parameter default="c:\apps\clarity\logs" var="XOGlogFolder"/>
+	<gel:parameter default="1" var="DebugLevel"/>
+ 
+	<gel:setDataSource dbId="Niku"/>
+	
+	<!-- Busca informações sobre o diário de bordo -->
+	<sql:query var="logbook" escapeText="false">   
+		SELECT	lbk.code,
+			lbk.name,
+			lbk.lbk_description,
+			lbk.odf_parent_id,
+			lbk.lbk_saved_as_ll,
+			lbk.partition_code,
+			inv.id
+			
+		FROM	niku.odf_ca_lbk_log_book lbk
+		
+		INNER JOIN	niku.INV_INVESTMENTS inv
+			ON	lbk.odf_parent_id = inv.ID
+				
+		WHERE	lbk.id = ${gel_objectInstanceId}
+	</sql:query>
+	
+	<!-- Salva as informações do diário de bordo -->
+	<core:forEach items="${logbook.rowsByIndex}" var="row">
+		<core:set var="lbk_id" value="${row[0]}"/>
+		<core:set var="lbk_name" value="${row[1]}"/>
+		<core:set var="lbk_description" value="${row[2]}"/>
+		<core:set var="lbk_parent_id" value="${row[3]}"/>
+		<core:set var="lbk_saved_as_ll" value="${row[4]}"/>
+		<core:set var="lbk_partition_code" value="${row[5]}"/>
+		<core:set var="lbk_project_id" value="${row[6]}"/>
+
+		<gel:log level="debug" message="Working with logbook register ${lbk_name} which ID is ${lbk_id}. [LOGBOOK][OK][1]"/>
+	</core:forEach>
+	
+	<!-- Se o registro do diário de bordo ainda não foi salvo como lição aprendida... -->
+	<core:if test="${lbk_saved_as_ll == 0}">
+		<gel:log level="debug" message="Saving as Lesson Learned. [LOGBOOK][OK][2]"/>
+
+		<!-- Login -->
+		<soap:invoke endpoint="${XOGURL}/niku/xog" var="auth">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header/>
+					<soapenv:Body>
+						<xog:Login>
+							<xog:Username>${XOGUsername}</xog:Username>
+							<xog:Password>${XOGPassword}</xog:Password>
+						</xog:Login>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+
+		<!-- Session -->
+		<gel:set asString="true" select="$auth/soapenv:Envelope/soapenv:Body/xog:SessionID/text()" var="v_sessionID"/>
+		<core:choose>
+			<core:when test="${v_sessionID == null}">
+				<gel:log level="debug" message="XOG Login FAILED! [XOG][ERROR][1]"/>
+			</core:when>
+			<core:otherwise/>
+		</core:choose>
+		<core:if test="${v_sessionID != null}">  
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Logged in with ${XOGUsername}! [XOG][OK][1]"/>
+			</core:if>
+ 
+			<!-- Salva session ID -->
+			<gel:set asString="true" select="$auth/soapenv:Envelope/soapenv:Body/xog:SessionID/text()" var="sessionID"/>
+
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Session ID=${sessionID}. [XOG][OK][2]"/>
+			</core:if>
+			
+			<!-- Cria uma nova lição aprendida -->
+			<gel:parse var="v_xml_root">
+				<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_customObjectInstance.xsd">
+				  <Header action="write" externalSource="NIKU" objectType="customObjectInstance" version="14.1.0.431">
+					<args name="overrideAutoNumbering" value="false"/>
+				  </Header>
+				  <customObjectInstances objectCode="lbk_lessons_learned">
+					<instance instanceCode="-1" objectCode="lbk_lessons_learned">
+					  <CustomInformation>
+						<ColumnValue name="partition_code">${lbk_partition_code}</ColumnValue>
+						<ColumnValue name="name">${lbk_name}</ColumnValue>
+						<ColumnValue name="code">-1</ColumnValue>
+						<ColumnValue name="page_layout">odf.lbk_lessons_learnedFrame</ColumnValue>
+						<ColumnValue name="odf_period_start"/>
+						<ColumnValue name="odf_period_end"/>
+						<ColumnValue name="lbk_related_project">${lbk_project_id}</ColumnValue>
+						<ColumnValue name="lbk_ll_description">${lbk_description}</ColumnValue>
+					  </CustomInformation>
+					  <OBSAssocs complete="false"/>
+					  <Security>
+						<UserSecurity rightCode="odf_cst_lbk_lessons_learned_edit" userName="admin"/>
+					  </Security>
+					</instance>
+				  </customObjectInstances>
+				</NikuDataBus>
+			</gel:parse>
+			<gel:serialize var="${v_xml_root}" fileName="c:\apps\clarity\logs\db.xml"/>
+ 
+			<!-- Invoke XOG -->
+			<soap:invoke endpoint="${XOGURL}/niku/xog" var="vResults">
+				<soap:message>
+					<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+						<soapenv:Header>
+							<xog:Auth>
+								<xog:SessionID>${sessionID}</xog:SessionID>
+							</xog:Auth>
+						</soapenv:Header>
+						<soapenv:Body>
+							<gel:include select="$v_xml_root"/>
+						</soapenv:Body>
+					</soapenv:Envelope>
+				</soap:message>
+			</soap:invoke>
+
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="vResults = ${vResults}. [XOG][INFO][1]"/>
+			</core:if>
+		</core:if>
+		
+		<core:if test="${v_sessionID == null}">  
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Failed logging with ${XOGUsername}! [XOG][ERROR][2]"/>
+			</core:if>
+		</core:if>
+	
+		<!-- Log out -->
+		<soap:invoke endpoint="${XOGURL}/niku/xog" var="logoutresult">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header>
+						<xog:Auth>
+							<xog:SessionID>${sessionID}</xog:SessionID>
+						</xog:Auth>
+					</soapenv:Header>
+					<soapenv:Body>
+						<xog:Logout/>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+
+	</core:if>
+	
+	<!-- Se o registro do diário de bordo já foi salvo como lição aprendida anteriormente... -->
+	<core:if test="${lbk_saved_as_ll == 1}">
+		<gel:log level="debug" message="This log book register was already saved as lesson learned. [LOGBOOK][INFO][1]"/>
+	</core:if>
+
+</gel:script>
