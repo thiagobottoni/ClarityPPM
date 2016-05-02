@@ -1,6 +1,7 @@
 --Retorna os planos financeiros criados no investimento
 
 SELECT
+  INV.Name "Investimento",
   FIN.NAME "Plan",
   FIN.DESCRIPTION  "Description",
   FIN.PLAN_TYPE_CODE "Type",
