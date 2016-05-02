@@ -1,0 +1,21 @@
+--Retorna o custo planejado e realizado por tarefa de um projeto
+
+SELECT
+  INV.NAME "Investment",
+  TASK.PRNAME "Task",
+  SUM(WV.TOTALCOST) "Total Cost",
+  SUM(WV.ACTUALCOST) "Actual Cost"
+FROM INV_INVESTMENTS INV
+  INNER JOIN  PRTASK TASK
+    ON        TASK.PRPROJECTID = INV.ID
+  INNER JOIN  PPA_WIP WIP
+    ON        TASK.PRID = WIP.TASK_ID
+  INNER JOIN  PPA_WIP_VALUES WV
+    ON        WIP.TRANSNO = WV.TRANSNO
+WHERE INV.CODE = 'PR1002' --Altere pelo código do seu projeto
+  AND WV.CURRENCY_TYPE = 'HOME'
+  AND TASK.PRWBSLEVEL = 2
+GROUP BY INV.NAME,
+         TASK.PRNAME,
+         TASK.PRWBSSEQUENCE
+ORDER BY TASK.PRWBSSEQUENCE
