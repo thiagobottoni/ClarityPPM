@@ -1,13 +1,13 @@
 --Retorna os planos financeiros criados no investimento
 
 SELECT
-  FIN.NAME "Plano",
-  FIN.DESCRIPTION  "Descrição",
-  FIN.PLAN_TYPE_CODE "Tipo",
-  FIN.PERIOD_TYPE_CODE "Período",
-  DECODE(FIN.IS_PLAN_OF_RECORD, 1, 'Sim', 0, 'Não') "Plano de Registro",
-  FIN.TOTAL_COST "Custo Total",
-  FIN.TOTAL_BENEFIT "Benefício Total",
+  FIN.NAME "Plan",
+  FIN.DESCRIPTION  "Description",
+  FIN.PLAN_TYPE_CODE "Type",
+  FIN.PERIOD_TYPE_CODE "Period",
+  DECODE(FIN.IS_PLAN_OF_RECORD, 1, 'Yes', 0, 'No') "Plan of Record",
+  FIN.TOTAL_COST "Total Cost",
+  FIN.TOTAL_BENEFIT "Total Benefit",
   FIN.STATUS_CODE "Status"
 FROM
   FIN_PLANS FIN
