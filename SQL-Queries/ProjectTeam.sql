@@ -8,7 +8,7 @@ SELECT DISTINCT INV.NAME "Investment Name",
           		WHERE	PROLE.ID = TEAM.PRROLEID
           	) "Project Role",
 		DECODE	(TEAM.PRBOOKING, 15, 'Hard', 10, 'Mixed', 5, 'Soft') "Booking Status",
-		DECODE	(TEAM.PRISOPEN, 1, 'False', 0, 'True') "Open for Time"
+		DECODE	(TEAM.PRISOPEN, 1, 'True', 0, 'False') "Open for Time"
 FROM		INV_INVESTMENTS INV
 	INNER JOIN	PRTEAM TEAM
 		ON	TEAM.PRPROJECTID = INV.ID
