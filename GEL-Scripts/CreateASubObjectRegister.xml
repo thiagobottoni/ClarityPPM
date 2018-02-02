@@ -143,7 +143,7 @@
 	
 	<!-- Se o projeto foi reenviado, quer dizer que a análise já está feita, então não precisa fazer nada -->
 	<core:if test="${reenviado == 1}">
-		<gel:log level="debug" message="Súmula reenviada [DEBUG][INFO][1]"/>
+		<gel:log level="debug" message="Reenviado [DEBUG][INFO][1]"/>
 	</core:if>
 
 </gel:script>
