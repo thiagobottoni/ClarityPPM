@@ -1,0 +1,149 @@
+<gel:script 
+	xmlns:core="jelly:core" 
+	xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary" 
+	xmlns:sql="jelly:sql" 
+	xmlns:soap="jelly:com.niku.union.gel.SOAPTagLibrary" 
+	xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+	xmlns:xog="http://www.niku.com/xog">
+	
+	<!-- Informações do ambiente -->
+	<gel:parameter default="https://your_ppm_server.com" var="XOGURL"/>
+	<gel:parameter default="your_xog_user" var="XOGUsername"/>
+	<gel:parameter default="your_xog_pwd"  var="XOGPassword"/>
+	<gel:parameter default="c:\apps\clarity\logs" var="XOGlogFolder"/>
+	<gel:parameter default="1" var="DebugLevel"/>
+ 
+	<gel:setDataSource dbId="Niku"/>
+	
+	<!-- Consulta se o projeto foi reenviado -->
+	<sql:query var="consulta" escapeText="false">   
+		SELECT cp.obj_reenviado
+		FROM INV_PROJECTS P
+		INNER JOIN ODF_CA_PROJECT CP
+		ON P.PRID = CP.ID
+		where p.prid = ${gel_objectInstanceId}
+	</sql:query>
+	
+	<!-- Salva as informações da consulta -->
+	<core:forEach items="${consulta.rowsByIndex}" var="row">
+		<core:set var="reenviado" value="${row[0]}"/>
+
+		<gel:log level="debug" message="${gel_objectInstanceId} | ${reenviado} [DEBUG][OK][1]"/>
+	</core:forEach>
+	
+	<!-- Se o projeto não foi reenviado... -->
+	<core:if test="${reenviado == 0}">
+		<gel:log level="debug" message="[DEBUG][OK][2]"/>
+
+		<!-- Login -->
+		<soap:invoke endpoint="${XOGURL}/niku/xog" var="auth">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header/>
+					<soapenv:Body>
+						<xog:Login>
+							<xog:Username>${XOGUsername}</xog:Username>
+							<xog:Password>${XOGPassword}</xog:Password>
+						</xog:Login>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+
+		<!-- Session -->
+		<gel:set asString="true" select="$auth/soapenv:Envelope/soapenv:Body/xog:SessionID/text()" var="v_sessionID"/>
+		<core:choose>
+			<core:when test="${v_sessionID == null}">
+				<gel:log level="debug" message="XOG Login FAILED! [XOG][ERROR][1]"/>
+			</core:when>
+			<core:otherwise/>
+		</core:choose>
+		<core:if test="${v_sessionID != null}">  
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Logged in with ${XOGUsername}! [XOG][OK][1]"/>
+			</core:if>
+ 
+			<!-- Salva session ID -->
+			<gel:set asString="true" select="$auth/soapenv:Envelope/soapenv:Body/xog:SessionID/text()" var="sessionID"/>
+
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Session ID=${sessionID}. [XOG][OK][2]"/>
+			</core:if>
+			
+			<!-- Cria uma análise (sub objeto) para o departamento responsável -->
+			<gel:parse var="v_xml_root">
+				<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_customObjectInstance.xsd">
+				  <Header action="write" externalSource="NIKU" objectType="customObjectInstance" version="14.1.0.431">
+					<args name="overrideAutoNumbering" value="false"/>
+				  </Header>
+				  <customObjectInstances objectCode="obj_analise">
+					<instance instanceCode="-1" objectCode="obj_analise">
+					  <CustomInformation>
+						<ColumnValue name="partition_code">partition1</ColumnValue>
+						<ColumnValue name="name">ANÁLISE DO DEPARTAMENTO DE TECNOLOGIA DA INFORMAÇÃO</ColumnValue>
+						<ColumnValue name="code">-1</ColumnValue>
+						<ColumnValue name="page_layout">odf.obj_analiseFrame</ColumnValue>
+						<ColumnValue name="obj_analise_txt">Favor preencher...</ColumnValue>
+						<ColumnValue name="odf_parent_id">${gel_objectInstanceId}</ColumnValue>
+					  </CustomInformation>
+					  <OBSAssocs complete="false"/>
+					  <Security>
+						<UserSecurity rightCode="odf_cst_obj_analise_edit" userName="admin"/>
+					  </Security>
+					</instance>
+				  </customObjectInstances>
+				</NikuDataBus>
+			</gel:parse>
+			<gel:serialize var="${v_xml_root}" fileName="c:\apps\clarity\logs\db.xml"/>
+ 
+			<!-- Invoke XOG -->
+			<soap:invoke endpoint="${XOGURL}/niku/xog" var="vResults">
+				<soap:message>
+					<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+						<soapenv:Header>
+							<xog:Auth>
+								<xog:SessionID>${sessionID}</xog:SessionID>
+							</xog:Auth>
+						</soapenv:Header>
+						<soapenv:Body>
+							<gel:include select="$v_xml_root"/>
+						</soapenv:Body>
+					</soapenv:Envelope>
+				</soap:message>
+			</soap:invoke>
+
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="vResults = ${vResults}. [XOG][INFO][1]"/>
+			</core:if>
+		</core:if>
+		
+		<core:if test="${v_sessionID == null}">  
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Failed logging with ${XOGUsername}! [XOG][ERROR][2]"/>
+			</core:if>
+		</core:if>
+	
+		<!-- Log out -->
+		<soap:invoke endpoint="${XOGURL}/niku/xog" var="logoutresult">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header>
+						<xog:Auth>
+							<xog:SessionID>${sessionID}</xog:SessionID>
+						</xog:Auth>
+					</soapenv:Header>
+					<soapenv:Body>
+						<xog:Logout/>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+
+	</core:if>
+	
+	<!-- Se o projeto foi reenviado, quer dizer que a análise já está feita, então não precisa fazer nada -->
+	<core:if test="${reenviado == 1}">
+		<gel:log level="debug" message="Súmula reenviada [DEBUG][INFO][1]"/>
+	</core:if>
+
+</gel:script>
