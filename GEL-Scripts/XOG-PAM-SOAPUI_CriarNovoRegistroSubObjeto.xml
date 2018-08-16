@@ -1,0 +1,28 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:obj="http://www.niku.com/xog/Object">
+  <soapenv:Header>
+	<obj:Auth>
+	  <obj:SessionID>SESSION__</obj:SessionID>
+	</obj:Auth>
+  </soapenv:Header>
+  <soapenv:Body>
+	<obj:WriteCustomObjectInstance>
+	  <NikuDataBus>
+		<Header externalSource="NIKU" version="15.4.0.270">
+		  <args name="overrideAutoNumbering" value="false"/> <!--Não esquecer disso se o ID for auto-incremental -->
+		</Header>
+		<customObjectInstances objectCode="por_contrato">
+		  <instance instanceCode="-1" objectCode="por_contrato"> <!-- Se o ID for auto-incremental, colocar -1 no instanceCode -->
+			<CustomInformation>
+			  <ColumnValue name="page_layout">odf.por_contratoFrame</ColumnValue>
+			  <ColumnValue name="name">CONTRATO__</ColumnValue>
+			  <ColumnValue name="partition_code">partition1</ColumnValue>
+			  <ColumnValue name="odf_period_end"/>
+			  <ColumnValue name="odf_period_start"/>
+			  <ColumnValue name="code">-1</ColumnValue> <!-- Se o ID for auto-incremental, colocar -1 no code -->
+			</CustomInformation>
+		  </instance>
+		</customObjectInstances>
+	  </NikuDataBus>
+	</obj:WriteCustomObjectInstance>
+  </soapenv:Body>
+</soapenv:Envelope>
