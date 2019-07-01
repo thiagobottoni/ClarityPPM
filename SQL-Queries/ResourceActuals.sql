@@ -1,4 +1,4 @@
---Retorna as horas realizadas nas tarefas de um projeto por recurso
+--Returns the tasks actuals of a project by resource
 
 SELECT DISTINCT
   UNIT.NAME DEPARTMENT,
@@ -22,9 +22,9 @@ FROM INV_INVESTMENTS INV
   INNER JOIN 	PRJ_OBS_TYPES OTYPES
     ON 		(UNIT.TYPE_ID = OTYPES.ID 
     AND 	OTYPES.NAME = 'Corporate Department OBS')
-WHERE INV.CODE = 'PR1002' --Altere pelo código do seu investimento
-  AND RES.PERSON_TYPE > 0
-  AND TASK.PRSTART BETWEEN '01-JAN-2015' AND '31-DEC-2016' --Altere pelo período que deseja consultar
+WHERE INV.CODE = 'PR1002' --Type any project code
+AND RES.PERSON_TYPE > 0
+  AND TASK.PRSTART BETWEEN '01-JAN-2015' AND '31-DEC-2016' --Change it accordingly to the period you want
 GROUP BY UNIT.NAME,
       RES.FULL_NAME
 HAVING SUM(ASSIGN.PRACTSUM / 3600) > 0
