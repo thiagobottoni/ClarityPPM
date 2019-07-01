@@ -1,4 +1,4 @@
---Retorna o custo planejado e realizado por tarefa de um projeto
+--Returns the planned and actual cost by project task
 
 SELECT
   INV.NAME "Investment",
@@ -12,7 +12,7 @@ FROM INV_INVESTMENTS INV
     ON        TASK.PRID = WIP.TASK_ID
   INNER JOIN  PPA_WIP_VALUES WV
     ON        WIP.TRANSNO = WV.TRANSNO
-WHERE INV.CODE = 'PR1002' --Altere pelo código do seu projeto
+WHERE INV.CODE = 'PR1002' --Type the code of any project
   AND WV.CURRENCY_TYPE = 'HOME'
   AND TASK.PRWBSLEVEL = 2
 GROUP BY INV.NAME,
