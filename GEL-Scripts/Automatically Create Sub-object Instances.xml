@@ -1,0 +1,145 @@
+<gel:script 
+	xmlns:core="jelly:core" 
+	xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary" 
+	xmlns:sql="jelly:sql" 
+	xmlns:soap="jelly:com.niku.union.gel.SOAPTagLibrary" 
+	xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+	xmlns:xog="http://www.niku.com/xog">
+	
+	<!-- Informações do ambiente -->
+	<gel:parameter default="<clarity_server_url>" var="XOGURL"/>
+	<gel:parameter default="<username>" var="XOGUsername"/>
+	<gel:parameter default="<password>"  var="XOGPassword"/>
+	<gel:parameter default="c:\apps\clarity\logs" var="XOGlogFolder"/>
+	<gel:parameter default="1" var="DebugLevel"/>
+ 
+	<gel:setDataSource dbId="Niku"/>
+	
+	<core:set var="month12" value="JAN-2019"/>
+	<core:set var="month11" value="FEB-2019"/>	
+	<core:set var="month10" value="MAR-2019"/>
+	<core:set var="month9" value="APR-2019"/>
+	<core:set var="month8" value="MAY-2019"/>
+	<core:set var="month7" value="JUN-2019"/>
+	<core:set var="month6" value="JUL-2019"/>
+	<core:set var="month5" value="AUG-2019"/>
+	<core:set var="month4" value="SEP-2019"/>
+	<core:set var="month3" value="OCT-2019"/>
+	<core:set var="month2" value="NOV-2019"/>
+	<core:set var="month1" value="DEC-2019"/>
+	<core:set var="month0" value="ERROR"/>
+	
+	<core:set value="12" var="count"/>
+	<core:while test="${count &gt; 0}">
+	
+		<core:set var="mloop" value="month${count}"/>	
+		
+		<!-- Login -->
+		<soap:invoke endpoint="${XOGURL}/niku/xog" var="auth">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header/>
+					<soapenv:Body>
+						<xog:Login>
+							<xog:Username>${XOGUsername}</xog:Username>
+							<xog:Password>${XOGPassword}</xog:Password>
+						</xog:Login>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+
+		<!-- Session -->
+		<gel:set asString="true" select="$auth/soapenv:Envelope/soapenv:Body/xog:SessionID/text()" var="v_sessionID"/>
+		<core:choose>
+			<core:when test="${v_sessionID == null}">
+				<gel:log level="debug" message="XOG Login FAILED! [XOG][ERROR][1]"/>
+			</core:when>
+			<core:otherwise/>
+		</core:choose>
+		<core:if test="${v_sessionID != null}">  
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Logged in with ${XOGUsername}! [XOG][OK][1]"/>
+			</core:if>
+ 
+			<!-- Salva session ID -->
+			<gel:set asString="true" select="$auth/soapenv:Envelope/soapenv:Body/xog:SessionID/text()" var="sessionID"/>
+
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Session ID=${sessionID}. [XOG][OK][2]"/>
+			</core:if>
+			
+			<gel:parse var="v_xml_root">
+				<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_customObjectInstance.xsd">
+				  <Header action="write" externalSource="NIKU" objectType="customObjectInstance" version="14.1.0.431">
+					<args name="overrideAutoNumbering" value="false"/>
+				  </Header>
+				  <customObjectInstances objectCode="gomth01_targets_obj">
+					<instance instanceCode="-1" objectCode="gomth01_targets_obj">
+					  <CustomInformation>
+						<ColumnValue name="partition_code">partition1</ColumnValue>
+						<ColumnValue name="name">${context.getVariable(mloop)}</ColumnValue>
+						<ColumnValue name="code">-1</ColumnValue>
+						<ColumnValue name="gomth01_tvalue_att">0</ColumnValue>
+						<ColumnValue name="odf_parent_id">${gel_objectInstanceId}</ColumnValue>
+						<ColumnValue name="odf_cncrt_parent_id">${gel_objectInstanceId}</ColumnValue>
+						<ColumnValue name="gomth01_tdate_att">2019-06-30T00:00:00</ColumnValue>
+					  </CustomInformation>
+					  <OBSAssocs complete="false"/>
+					  <Security>
+						<UserSecurity rightCode="odf_cst_gomth01_targets_obj_edit" userName="gomth01@broadcom.com"/>
+					  </Security>
+					</instance>
+				  </customObjectInstances>
+				</NikuDataBus>
+			</gel:parse>
+			<gel:serialize var="${v_xml_root}" fileName="c:\apps\clarity\logs\db.xml"/>
+ 
+			<!-- Invoke XOG -->
+			<soap:invoke endpoint="${XOGURL}/niku/xog" var="vResults">
+				<soap:message>
+					<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+						<soapenv:Header>
+							<xog:Auth>
+								<xog:SessionID>${sessionID}</xog:SessionID>
+							</xog:Auth>
+						</soapenv:Header>
+						<soapenv:Body>
+							<gel:include select="$v_xml_root"/>
+						</soapenv:Body>
+					</soapenv:Envelope>
+				</soap:message>
+			</soap:invoke>
+
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="vResults = ${vResults}. [XOG][INFO][1]"/>
+			</core:if>
+		</core:if>
+		
+		<core:if test="${v_sessionID == null}">  
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Failed logging with ${XOGUsername}! [XOG][ERROR][2]"/>
+			</core:if>
+		</core:if>
+	
+		<!-- Log out -->
+		<soap:invoke endpoint="${XOGURL}/niku/xog" var="logoutresult">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header>
+						<xog:Auth>
+							<xog:SessionID>${sessionID}</xog:SessionID>
+						</xog:Auth>
+					</soapenv:Header>
+					<soapenv:Body>
+						<xog:Logout/>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+		
+		<core:set value="${count-1}" var="count"/>
+
+	</core:while>
+	
+</gel:script>
