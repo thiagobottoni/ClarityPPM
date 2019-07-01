@@ -7,9 +7,9 @@ INNER JOIN	prj_resources prs
 	ON 	res.id = prs.prid
 LEFT JOIN 	prcalendar prc
 	ON	prc.prresourceid = res.id
-INNER JOIN 	(SELECT CASE WHEN	prc2.prname IS NOT NULL 
-			THEN	prc2.prname 
-			ELSE 	'Custom Calendar' 
+INNER JOIN 	(SELECT CASE WHEN prc2.prname IS NOT NULL 
+			THEN	  prc2.prname 
+			ELSE 	  'Custom Calendar' 
 			END AS calendar_name, prc2.prid 
 		FROM prcalendar prc2) calendar_group
 	ON 	calendar_group.prid = prs.prcalendarid
