@@ -4,7 +4,7 @@ SELECT	@SELECT:DIM:USER_DEF:IMPLIED:IDEA:demandas.tipo:tipo@,
 	@SELECT:METRIC:USER_DEF:IMPLIED:COUNT(demandas.idea_id):idea_count:AGG@
 
 FROM	(
-			  SELECT      lkp.name type
+			  SELECT      lkp.name tipo
 				      , inv.code idea_id
 			  FROM        inv_ideas idea
 			  INNER JOIN  inv_investments inv
