@@ -1,4 +1,4 @@
---Retorna os planos financeiros criados no investimento
+--Returns the financial plans created on an investment
 
 SELECT
   INV.Name "Investment",
@@ -15,4 +15,4 @@ FROM
     INNER JOIN INV_INVESTMENTS INV
       ON FIN.OBJECT_ID = INV.ID
 WHERE
-  INV.CODE = 'PR1002' --Altere pelo código do seu investimento
+  INV.CODE = 'PR1002' --Type any project code
