@@ -1,4 +1,4 @@
---Consulta para ser usada em portlets de lista (grid) como drill down. Consiste na listagem de demandas cujo tipo obedeça o parâmetro recebido pela URL da página do Clarity PPM.
+--Query to be used in grid portlets as a drill down. It lists ideas which type is equals the parameter received through the page URL.
 
 SELECT	@SELECT:DIM:USER_DEF:IMPLIED:IDEA:demandas.idea_id:idea_id@,
 	@SELECT:DIM_PROP:USER_DEF:IMPLIED:IDEA:demandas.nome:nome@,
@@ -14,7 +14,7 @@ FROM	(
 		INNER JOIN  odf_ca_inv odfi
 			ON  inv.id = odfi.id
 		INNER JOIN  cmn_lookups_v lkp
-			--Esse 'tipo' que estou usando não é atributo nativo
+			--This field 'tipo' is a custom attribute
 			ON  odfi.tbg_tipo = lkp.lookup_code
 			AND lkp.language_code = @where:param:language@
 		WHERE	    lkp.name = @WHERE:PARAM:XML:STRING:/data/tbg_tipo_p/@value@
