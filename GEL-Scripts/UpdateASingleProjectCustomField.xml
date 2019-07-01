@@ -1,0 +1,132 @@
+<gel:script 
+	xmlns:core="jelly:core" 
+	xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary" 
+	xmlns:sql="jelly:sql" 
+	xmlns:soap="jelly:com.niku.union.gel.SOAPTagLibrary" 
+	xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+	xmlns:xog="http://www.niku.com/xog">
+	
+	<!-- Informações do ambiente -->
+	<gel:parameter default="<clarity_server_url>" var="XOGURL"/>
+	<gel:parameter default="<username>" var="XOGUsername"/>
+	<gel:parameter default="<password>"  var="XOGPassword"/>
+	<gel:parameter default="c:\apps\clarity\logs" var="XOGlogFolder"/>
+	<gel:parameter default="1" var="DebugLevel"/>
+ 
+	<gel:setDataSource dbId="Niku"/>
+	
+	
+	<sql:query var="wstatus" escapeText="false">
+		SELECT oci.obj_work_status, inv.code, inv.name
+		FROM odf_ca_inv oci
+		inner join inv_investments inv 
+		on oci.id = inv.id
+        where oci.id = ${gel_objectInstanceId}
+	</sql:query>
+	
+	
+	<core:forEach items="${wstatus.rowsByIndex}" var="row">
+		<core:set var="w_status" value="${row[0]}"/>
+		<core:set var="prj_code" value="${row[1]}"/>
+		<core:set var="prj_name" value="${row[2]}"/>
+	</core:forEach>
+	
+<!-- Login -->
+		<soap:invoke endpoint="${XOGURL}/niku/xog" var="auth">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header/>
+					<soapenv:Body>
+						<xog:Login>
+							<xog:Username>${XOGUsername}</xog:Username>
+							<xog:Password>${XOGPassword}</xog:Password>
+						</xog:Login>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+
+		<!-- Session -->
+		<gel:set asString="true" select="$auth/soapenv:Envelope/soapenv:Body/xog:SessionID/text()" var="v_sessionID"/>
+		<core:choose>
+			<core:when test="${v_sessionID == null}">
+				<gel:log level="debug" message="XOG Login FAILED! [XOG][ERROR][1]"/>
+			</core:when>
+			<core:otherwise/>
+		</core:choose>
+		<core:if test="${v_sessionID != null}">  
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Logged in with ${XOGUsername}! [XOG][OK][1]"/>
+			</core:if>
+ 
+			<!-- Salva session ID -->
+			<gel:set asString="true" select="$auth/soapenv:Envelope/soapenv:Body/xog:SessionID/text()" var="sessionID"/>
+
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Session ID=${sessionID}. [XOG][OK][2]"/>
+			</core:if>
+			
+			<gel:parse var="v_xml_root">
+				<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_project.xsd">
+			  <Header action="write" externalSource="NIKU" objectType="project" version="15.5.0.320"/>
+			  <Projects>
+				<Project projectID="${prj_code}" name ="${prj_name}">
+				  <Allocations/>
+				  <scenarioDependencies/>
+				  <InvestmentAssociations>
+					<Allocations/>
+					<Hierarchies/>
+				  </InvestmentAssociations>
+				  <CustomInformation>
+					<ColumnValue name="gomth01_stat_trab_att">${w_status}</ColumnValue>
+				  </CustomInformation>
+				  <OBSAssocs complete="false"/>
+				</Project>
+			  </Projects>
+			</NikuDataBus>
+			</gel:parse>
+			<gel:serialize var="${v_xml_root}" fileName="c:\apps\clarity\logs\db.xml"/>
+ 
+			<!-- Invoke XOG -->
+			<soap:invoke endpoint="${XOGURL}/niku/xog" var="vResults">
+				<soap:message>
+					<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+						<soapenv:Header>
+							<xog:Auth>
+								<xog:SessionID>${sessionID}</xog:SessionID>
+							</xog:Auth>
+						</soapenv:Header>
+						<soapenv:Body>
+							<gel:include select="$v_xml_root"/>
+						</soapenv:Body>
+					</soapenv:Envelope>
+				</soap:message>
+			</soap:invoke>
+
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="vResults = ${vResults}. [XOG][INFO][1]"/>
+			</core:if>
+		</core:if>
+		
+		<core:if test="${v_sessionID == null}">  
+			<core:if test="${DebugLevel &gt; 0}">
+				<gel:log level="debug" message="Failed logging with ${XOGUsername}! [XOG][ERROR][2]"/>
+			</core:if>
+		</core:if>
+	
+		<!-- Log out -->
+		<soap:invoke endpoint="${XOGURL}/niku/xog" var="logoutresult">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header>
+						<xog:Auth>
+							<xog:SessionID>${sessionID}</xog:SessionID>
+						</xog:Auth>
+					</soapenv:Header>
+					<soapenv:Body>
+						<xog:Logout/>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+</gel:script>
