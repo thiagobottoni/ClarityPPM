@@ -1,4 +1,4 @@
---Retorna a equipe do investimento
+--Returns the project team
 
 SELECT DISTINCT INV.NAME "Investment Name",
 		SRM.FULL_NAME "Resource",
@@ -14,4 +14,4 @@ FROM		INV_INVESTMENTS INV
 		ON	TEAM.PRPROJECTID = INV.ID
 	INNER JOIN	SRM_RESOURCES SRM
 		ON	SRM.ID = TEAM.PRRESOURCEID
-WHERE	INV.CODE = 'PR1002' --Altere pelo código do seu projeto
+WHERE	INV.CODE = 'PR1002' --Type any project code
