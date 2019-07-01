@@ -1,14 +1,14 @@
---Retorna as partes interessadas dos projetos
+--Returns project stakeholders
 
-SELECT		INV.name "Investimento"
-		, RES.full_name "Gerente de Projetos"
-		, RES.email "Email do Gerente de Projetos"
-		, business_owner.name_bo "Dono do Negócio"
-		, business_owner.email_bo "E-mail do Dono do Negócio"
-		, pmo.name_pmo "Gerente do PMO"
-		, pmo.email_pmo "Email do Gerente do PMO"
-		, finance_governance.name_fg "G. de Finanças e governança"
-		, finance_governance.email_fg "Email do G. de Fin. e Gov."	
+SELECT		INV.name "Investment"
+		, RES.full_name "Project Manager"
+		, RES.email "Project Manager Email"
+		, business_owner.name_bo "Business Owner"
+		, business_owner.email_bo "Business Owner Email"
+		, pmo.name_pmo "PMO Manager"
+		, pmo.email_pmo "PMO Manager Email"
+		, finance_governance.name_fg "Finance and Governance Manager"
+		, finance_governance.email_fg "Fin. and Gov. Manager Email"	
 FROM 		INV_INVESTMENTS INV
 INNER JOIN	INV_PROJECTS PROJ
 	ON	INV.id = PROJ.prid
@@ -57,4 +57,4 @@ INNER JOIN
 WHERE	INV.odf_object_code = 'project'
 	AND PROJ.is_template = 0 
 	AND PROJ.is_program = 0
-	--AND inv.code = 'PR1002' Use caso queira retornar apenas um projeto
+	--AND inv.code = 'PR1002' Use this line if you want to fetch only one project
