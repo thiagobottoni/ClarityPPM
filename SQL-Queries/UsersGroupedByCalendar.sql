@@ -4,10 +4,10 @@ SELECT		COUNT(res.full_name) 		"Users",
 		calendar_group.calendar_name 	"Calendar Name"
 FROM 		srm_resources res
 INNER JOIN	prj_resources prs
-		ON 	res.id = prs.prid
+	ON 	res.id = prs.prid
 LEFT JOIN 	prcalendar prc
-		ON	prc.prresourceid = res.id
-inner join 	(SELECT CASE WHEN	prc2.prname IS NOT NULL 
+	ON	prc.prresourceid = res.id
+INNER JOIN 	(SELECT CASE WHEN	prc2.prname IS NOT NULL 
 			THEN	prc2.prname 
 			ELSE 	'Custom Calendar' 
 			END AS calendar_name, prc2.prid 
