@@ -1,4 +1,4 @@
---Query to be used in a graph portlet on Clarity PPM. It counts ideas grouped by creation date and implements some filters.
+--Query to be used in chart portlets on Clarity PPM. It counts ideas grouped by creation date and implements some filters.
 
 SELECT	@SELECT:DIM:USER_DEF:IMPLIED:IDEA:demandas.created_date:created_date@,
 	@SELECT:METRIC:USER_DEF:IMPLIED:COUNT(demandas.idea_id):idea_count:AGG@
