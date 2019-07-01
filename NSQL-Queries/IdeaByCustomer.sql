@@ -5,7 +5,7 @@ SELECT	@SELECT:DIM:USER_DEF:IMPLIED:IDEA:demandas.cliente:cliente@,
 
 FROM	(
                 --Cliente is a custom object
-		SELECT 	    cli.name customer
+		SELECT 	    cli.name cliente
 			    , inv.code idea_id
 		FROM        inv_ideas idea
 		INNER JOIN  inv_investments inv
