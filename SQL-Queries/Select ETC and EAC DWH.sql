@@ -11,4 +11,4 @@ WHERE       inv.investment_type_key = 'project'
         AND inv.is_active = 1
         AND inv.is_template = 0
 --      AND inv.investment_name = 'Project Name' --Use that line to filter by Project Name
---		AND inv.investment_key = 5002003 --Use that line to filter by Project ID
+--      AND inv.investment_key = 5002003         --Use that line to filter by Project ID
