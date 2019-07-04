@@ -1,4 +1,4 @@
---Returns the ETC and EAC stored on the Clarity Data Warehouse
+--Returns the ETC and EAC in HOURS stored on the Clarity Data Warehouse
 
 SELECT      inv.investment_key         "ID", 
             inv.investment_name        "PROJECT NAME", 
