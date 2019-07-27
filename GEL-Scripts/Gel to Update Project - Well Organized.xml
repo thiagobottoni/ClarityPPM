@@ -1,0 +1,139 @@
+<gel:script 
+   xmlns:core="jelly:core" 
+   xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary" 
+   xmlns:sql="jelly:sql" 
+   xmlns:email="jelly:email" 
+   xmlns:file="jelly:com.niku.union.gel.FileTagLibrary" 
+   xmlns:ftp="jelly:com.niku.union.gel.FTPTagLibrary" 
+   xmlns:soap="jelly:com.niku.union.gel.SOAPTagLibrary" 
+   xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+   xmlns:xog="http://www.niku.com/xog" 
+   xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	
+	<!-- Parameters -->
+	<gel:parameter default="xog" var="xogUser"/>
+	
+	<!-- Setting the database -->
+	<core:catch var="dbConnection">
+		<gel:setDataSource dbId="Niku" var="database"/>
+	</core:catch>
+	
+	<!-- Checking if the database is available -->
+	<core:if test="${ dbConnection != null }">
+		<gel:log level="error" message="Database not available!"/>
+	</core:if>
+	
+	<!-- Capturing the custom script output -->
+	<core:catch var="customScript">
+		
+		<!-- Getting the session ID for the user defined above (var xogUser) -->
+		<core:new className="com.niku.union.security.DefaultSecurityIdentifier" var="securityId"/>
+		<core:invokeStatic className="com.niku.union.security.UserSessionControllerFactory" method="getInstance" var="xogInstance"/>
+		<core:set var="securityId" value="${xogInstance.init(xogUser, securityId)}"/>
+		<core:set var="sessionID" value="${securityId.getSessionId()}"/>
+
+		<!-- Checking if the user can log in to Clarity -->
+		<core:choose>
+			<core:when test="${sessionID == null}">
+				<gel:log level="error" message="Cannot log in to Clarity with user ${xogUser}!"/>
+			</core:when>
+			<core:otherwise>
+				<gel:log level="debug" message="Logged in with user: ${xogUser}"/>
+				<gel:log level="debug" message="Session ID: ${sessionID}"/>
+			</core:otherwise>
+		</core:choose>
+		
+		<!-- Fetching active projects, no templates, which the native calculation method is manual,  -->
+		<!-- the custom calculation method is duration and have updates on task duration and % complete -->
+		<sql:query var="projects" dataSource="${database}" escapeText="false">
+		<![CDATA[
+			SELECT  DISTINCT    inv.code,
+                                inv.name
+			FROM    inv_projects prj
+			JOIN    odf_ca_project odf_prj  ON prj.prid = odf_prj.id
+			JOIN    inv_investments inv     ON prj.prid = inv.id
+			JOIN    prtask tsk              ON prj.prid = tsk.prprojectid
+			JOIN    odf_ca_task odf_tsk     ON tsk.prid = odf_tsk.id
+			WHERE   prj.is_template = 0 
+			  AND   inv.odf_object_code = 'project' 
+			  AND   inv.is_active = 1
+			  AND  ( prj.percent_calc_mode = 0 -- Options: 0 = Manual / 1 = Effort / 2 = Duration
+					 AND odf_prj.brd_cpc_calc_att = 'DURATION' ) -- Options: MANUAL / EFFORT / DURATION / CUSTOM
+			  AND  ( odf_tsk.brd_cpc_durat_b4_att <> tsk.prduration 
+					 OR odf_tsk.brd_cpc_before_att <> tsk.prpctcomplete )
+		]]>
+		</sql:query>
+		
+		<core:forEach items="${projects.rows}" trim="true" var="row">
+			<core:set value="${row.code}" var="code"/>
+			<core:set value="${row.name}" var="name"/>			
+			<gel:log level="debug" message="Project: ${name} | Code: ${code}"/>
+			
+			<!-- Creating the xog write to update the projects -->
+			<gel:parse var="updateProject">
+				<NikuDataBus 
+					xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+					xsi:noNamespaceSchemaLocation="../xsd/nikuxog_project.xsd">
+					<Header action="write" externalSource="NIKU" objectType="project" version="15.6"/>
+					<Projects>
+						<Project name="${name}" projectID="${code}">
+							<CustomInformation>
+								<ColumnValue name="brd_cpc_update_att">1</ColumnValue>
+							</CustomInformation>
+						</Project>
+					</Projects>
+				</NikuDataBus>
+			</gel:parse>
+			
+			<!-- Executing the xog write -->
+			<soap:invoke endpoint="internal" var="result">
+				<soap:message>
+					<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+									  xmlns:xog="http://www.niku.com/xog">
+						<soapenv:Header>
+							<xog:Auth>
+								<xog:SessionID>${sessionID}</xog:SessionID>
+							</xog:Auth>
+						</soapenv:Header>
+						<soapenv:Body>
+							<gel:include select="$updateProject"/>
+						</soapenv:Body>
+					</soapenv:Envelope>
+				</soap:message>
+			</soap:invoke>
+			
+			<!-- Checking if xog returned any error -->
+			<gel:set asString="true" select="$result//Statistics/@failureRecords" var="failureRecs"/>
+			<core:if test="${failureRecs != '0'}">
+				<gel:log level="error" message="A Problem with the XOG happened!"/>
+				<gel:log level="error">Caught Exception was: <gel:expr select="$result"/> </gel:log>
+			</core:if>
+
+		</core:forEach>
+		
+		<!-- Logging out of Clarity -->
+		<soap:invoke endpoint="internal" var="logout">
+			<soap:message>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+								  xmlns:xog="http://www.niku.com/xog">
+					<soapenv:Header>
+						<xog:Auth>
+							<xog:SessionID>${sessionID}</xog:SessionID>
+						</xog:Auth>
+					</soapenv:Header>
+					<soapenv:Body>
+						<xog:Logout/>
+					</soapenv:Body>
+				</soapenv:Envelope>
+			</soap:message>
+		</soap:invoke>
+		
+	</core:catch>
+	
+	<!-- Checking if the custom script has returned any error -->
+	<core:if test="${ customScript != null }">
+		<gel:log level="error" message="Error: ${customScript}"/>
+	</core:if>
+	
+</gel:script>
