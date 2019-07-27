@@ -19,21 +19,21 @@
 		<gel:setDataSource dbId="Niku" var="database"/>
 	</core:catch>
 	
-	<!-- Checking if the database is available -->
+	<!-- Checking if database is available -->
 	<core:if test="${ dbConnection != null }">
 		<gel:log level="error" message="Database not available!"/>
 	</core:if>
 	
-	<!-- Capturing the custom script output -->
+	<!-- Capturing custom script output -->
 	<core:catch var="customScript">
 		
-		<!-- Getting the session ID for the user defined above (var xogUser) -->
+		<!-- Getting session ID for the user defined above (var xogUser) -->
 		<core:new className="com.niku.union.security.DefaultSecurityIdentifier" var="securityId"/>
 		<core:invokeStatic className="com.niku.union.security.UserSessionControllerFactory" method="getInstance" var="xogInstance"/>
 		<core:set var="securityId" value="${xogInstance.init(xogUser, securityId)}"/>
 		<core:set var="sessionID" value="${securityId.getSessionId()}"/>
 
-		<!-- Checking if the user can log in to Clarity -->
+		<!-- Checking if user can log in to Clarity -->
 		<core:choose>
 			<core:when test="${sessionID == null}">
 				<gel:log level="error" message="Cannot log in to Clarity with user ${xogUser}!"/>
@@ -44,8 +44,8 @@
 			</core:otherwise>
 		</core:choose>
 		
-		<!-- Fetching active projects, no templates, which the native calculation method is manual,  -->
-		<!-- the custom calculation method is duration and have updates on task duration and % complete -->
+		<!-- Fetching active projects, no templates, which native calculation method is manual,  -->
+		<!-- custom calculation method is duration and have updates on task duration and % complete -->
 		<sql:query var="projects" dataSource="${database}" escapeText="false">
 		<![CDATA[
 			SELECT  DISTINCT    inv.code,
@@ -70,7 +70,7 @@
 			<core:set value="${row.name}" var="name"/>			
 			<gel:log level="debug" message="Project: ${name} | Code: ${code}"/>
 			
-			<!-- Creating the xog write to update the projects -->
+			<!-- Creating xog write to update projects -->
 			<gel:parse var="updateProject">
 				<NikuDataBus 
 					xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -86,11 +86,11 @@
 				</NikuDataBus>
 			</gel:parse>
 			
-			<!-- Executing the xog write -->
+			<!-- Executing xog write -->
 			<soap:invoke endpoint="internal" var="result">
 				<soap:message>
 					<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
-									  xmlns:xog="http://www.niku.com/xog">
+							  xmlns:xog="http://www.niku.com/xog">
 						<soapenv:Header>
 							<xog:Auth>
 								<xog:SessionID>${sessionID}</xog:SessionID>
@@ -116,7 +116,7 @@
 		<soap:invoke endpoint="internal" var="logout">
 			<soap:message>
 				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
-								  xmlns:xog="http://www.niku.com/xog">
+						  xmlns:xog="http://www.niku.com/xog">
 					<soapenv:Header>
 						<xog:Auth>
 							<xog:SessionID>${sessionID}</xog:SessionID>
@@ -131,7 +131,7 @@
 		
 	</core:catch>
 	
-	<!-- Checking if the custom script has returned any error -->
+	<!-- Checking if custom script has returned any error -->
 	<core:if test="${ customScript != null }">
 		<gel:log level="error" message="Error: ${customScript}"/>
 	</core:if>
