@@ -49,7 +49,7 @@
 		<sql:query var="projects" dataSource="${database}" escapeText="false">
 		<![CDATA[
 			SELECT  DISTINCT    inv.code,
-                                inv.name
+                                	    inv.name
 			FROM    inv_projects prj
 			JOIN    odf_ca_project odf_prj  ON prj.prid = odf_prj.id
 			JOIN    inv_investments inv     ON prj.prid = inv.id
@@ -58,10 +58,10 @@
 			WHERE   prj.is_template = 0 
 			  AND   inv.odf_object_code = 'project' 
 			  AND   inv.is_active = 1
-			  AND  ( prj.percent_calc_mode = 0 -- Options: 0 = Manual / 1 = Effort / 2 = Duration
-					 AND odf_prj.brd_cpc_calc_att = 'DURATION' ) -- Options: MANUAL / EFFORT / DURATION / CUSTOM
-			  AND  ( odf_tsk.brd_cpc_durat_b4_att <> tsk.prduration 
-					 OR odf_tsk.brd_cpc_before_att <> tsk.prpctcomplete )
+			  AND   ( prj.percent_calc_mode = 0 -- Options: 0 = Manual / 1 = Effort / 2 = Duration
+				  AND odf_prj.brd_cpc_calc_att = 'DURATION' ) -- Options: MANUAL / EFFORT / DURATION / CUSTOM
+			  AND   ( odf_tsk.brd_cpc_durat_b4_att <> tsk.prduration 
+				  OR odf_tsk.brd_cpc_before_att <> tsk.prpctcomplete )
 		]]>
 		</sql:query>
 		
