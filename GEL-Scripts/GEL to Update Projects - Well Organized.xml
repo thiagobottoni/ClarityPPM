@@ -97,7 +97,7 @@
 							</xog:Auth>
 						</soapenv:Header>
 						<soapenv:Body>
-							<gel:include select="$updateProject"/>
+							<gel:include select="${updateProject}"/>
 						</soapenv:Body>
 					</soapenv:Envelope>
 				</soap:message>
