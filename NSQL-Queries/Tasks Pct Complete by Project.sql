@@ -23,7 +23,7 @@ FROM	(
 		CASE CONNECT_BY_ISLEAF WHEN 1 THEN 'You update the detail task duration and/or % Complete. Clarity calculates the days complete' WHEN 0 THEN 'Clarity calculates total duration, days complete and % complete for summary tasks automatically' END description,
 		CASE CONNECT_BY_ISLEAF WHEN 1 THEN odf_tsk.cpc_update ELSE 0 END cpc_update,
 		odf_tsk.cpc_exclude,
-		SYS_CONNECT_BY_PATH(tsk.prname, '\\') wbs,
+		SYS_CONNECT_BY_PATH(tsk.prname, '\') wbs,
 		LEVEL task_level
 	FROM        prtask tsk
 	LEFT JOIN   ( SELECT prid, prname, prprojectid, prwbssequence, pristask
