@@ -13,7 +13,7 @@ LEFT JOIN   ( SELECT prid, prname, prprojectid, prwbssequence, pristask
               FROM prtask ) parent_task    ON   parent_task.prwbssequence = tsk.wbs_parseq
                                            AND  parent_task.prprojectid = tsk.prprojectid
                                            AND  parent_task.pristask = 0
-WHERE tsk.prprojectid = 5002012
+WHERE tsk.prprojectid = 5002012 -- Replace with a Project ID
 CONNECT BY PRIOR tsk.prid = parent_task.prid
 START WITH parent_task.prid IS NULL
 ORDER BY tsk. prwbssequence
